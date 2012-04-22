@@ -1,12 +1,13 @@
 module Main where
 
+import Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as BS
 import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Data.Map as M
 
 import System.Environment
 import System.Exit (exitFailure)
-import System.IO (openFile, hGetContents, hClose)
 
 import Text.Parsec
 import Text.Parsec.ByteString
@@ -26,10 +27,10 @@ emptyLogEntry = LogEntry
 
 type Transform = LogEntry -> LogEntry
 
-simple_string :: Parsec String () String
+simple_string :: Parsec ByteString () String
 simple_string = many $ noneOf [' ', '\t', '\n']
 
-string_between :: Char -> Char -> Parsec String () String
+string_between :: Char -> Char -> Parsec ByteString () String
 string_between a b = between (char a) (char b) $ many $ noneOf [b]
 
 integer = do
@@ -44,7 +45,7 @@ idt p = p >> return id
 raw_string = idt . string
 any_string = idt simple_string
 
-format :: [Parsec String () Transform]
+format :: [Parsec ByteString () Transform]
 format =
   [ parse_remote_addr
   , raw_string "-"
@@ -59,7 +60,7 @@ format =
   , idt $ string_between '"' '"'
   ]
 
-logline :: Parsec String () Transform
+logline :: Parsec ByteString () Transform
 logline = foldl (\t f -> f `composeTransform` t) (return id) format
   where composeTransform a b = do
                                 y <- b
@@ -67,7 +68,7 @@ logline = foldl (\t f -> f `composeTransform` t) (return id) format
                                 x <- a
                                 return $ x . y
 
-parser :: Parsec String () [LogEntry]
+parser :: Parsec ByteString () [LogEntry]
 parser = do
   ts <- many $ do
                 t <- logline
@@ -79,8 +80,7 @@ parser = do
 main = do
   args <- getArgs
   let (f, cio) = case args of
-                  [] -> ("INPUT", getContents)
-                  [fn] -> (fn, readFile fn)
+                  [fn] -> (fn, BS.readFile fn)
                   _ -> ("", do
                               pn <- getProgName
                               putStrLn $ intercalate " "
