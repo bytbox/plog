@@ -1,0 +1,5 @@
+.*.swp
+plog
+*.hi
+*.o
+*.log
