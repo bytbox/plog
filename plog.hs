@@ -80,6 +80,7 @@ parser = do
 main = do
   args <- getArgs
   let (f, cio) = case args of
+                  [] -> ("INPUT", return . BS.pack =<< getContents)
                   [fn] -> (fn, BS.readFile fn)
                   _ -> ("", do
                               pn <- getProgName
